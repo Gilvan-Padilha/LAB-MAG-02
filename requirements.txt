@@ -1,0 +1,7 @@
+numpy
+flask
+flask_cors
+unidecode
+scipy
+reedsolo
+gunicorn

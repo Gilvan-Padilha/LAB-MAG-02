@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Enlace RF</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    
+    <style>
+        /* (Estilos CSS - Sem mudanças) */
+        html, body { width: 100%; overflow-x: hidden; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; color: #333; padding: 20px; box-sizing: border-box; }
+        h1, h2, h3 { color: #003366; border-bottom: 2px solid #0056a0; padding-bottom: 5px; }
+        h3 { border-bottom: 1px dashed #ccc; font-size: 1.15em; margin-top: 25px; }
+        .container { display: grid; grid-template-columns: minmax(300px, 350px) 1fr; gap: 25px; max-width: 1400px; margin: auto; box-sizing: border-box; width: 100%; }
+        .controles { background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); align-self: start; }
+        .visualizacao { background-color: #ffffff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); min-width: 0; display: flex; flex-direction: column; gap: 25px; }
+        .visualizacao h2 { margin-top: 0; margin-bottom: 5px; }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 0px; }
+        .form-group input[type="text"],
+        .form-group select { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .form-group input[type="checkbox"] { width: auto; margin-right: 10px; accent-color: #0056a0; }
+        .form-group label.checkbox-label { display: inline-flex; align-items: center; margin-top: 10px; font-weight: normal; }
+        .form-group input[type="range"] { width: 100%; margin-top: 10px; }
+        .form-group input[type="range"]:disabled { opacity: 0.4; }
+        .form-group label.disabled { color: #aaa; }
+        .slider-output { display: block; font-size: 1.15em; font-weight: 700; color: #0056a0; margin-top: 4px; }
+        .form-group-dual { display: flex; justify-content: space-between; align-items: flex-end; }
+        .slider-input { width: 80px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 1em; text-align: right; -moz-appearance: textfield; appearance: textfield; }
+        .slider-input::-webkit-outer-spin-button,
+        .slider-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .form-group-dual + input[type="range"] { margin-top: 5px; }
+        .output-group { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 0; }
+        .output-box { font-size: 0.95em; color: #555; background-color: #ffffff; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.03); padding: 12px 15px; border-radius: 8px; }
+        .output-box strong { display: block; font-size: 1.75em; font-weight: 600; color: #003366; margin-top: 4px; line-height: 1.2; }
+        #out-pr { font-size: 2.3em !important; color: #0056a0; }
+        #out-margin { font-size: 2.3em !important; font-weight: 700; }
+        .link-budget-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 1.1em; }
+        .link-budget-table td { padding: 8px 10px; border-bottom: 1px solid #eee; }
+        .link-budget-table td:last-child { text-align: right; font-weight: 700; font-family: 'Courier New', Courier, monospace; width: 120px; }
+        .budget-gain { color: #1e663c; }
+        .budget-loss { color: #a31c1c; }
+        .budget-total { color: #003366; font-weight: bold !important; border-top: 2px solid #003366; font-size: 1.15em; }
+        #status-antena-tx, #status-antena-rx { font-weight: 600; padding: 10px 15px; border-radius: 6px; text-align: center; border-width: 1px; border-style: solid; margin-top: 0; }
+        .status-bom { background-color: #e6f7ec; color: #1e663c; border-color: #a7d7b9; }
+        .status-ruim { background-color: #fdeeee; color: #a31c1c; border-color: #f1c1c1; }
+        .plot-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; min-height: 300px; margin-top: 0; }
+        .plot-container-full { margin-top: 20px; }
+        #plot-radiation-tx, #plot-radiation-rx, #plot-signal-rx, 
+        #plot-bits-demodulated, #plot-constellation, #plot-distancia { min-width: 0; height: 300px; }
+        #plot-distancia { height: 350px; }
+        .message-output { background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 12px 15px; border-radius: 5px; margin-top: 0; font-family: 'Courier New', Courier, monospace; font-size: 1.1em; word-wrap: break-word; overflow-wrap: break-word; }
+        .message-output label { font-weight: bold; color: #333; display: block; margin-bottom: 5px; }
+        .erro-bit { background-color: #f8d7da; color: #721c24; font-weight: bold; padding: 1px 0; }
+        .erro-fec { background-color: #222; color: #ff4d4d; font-weight: bold; padding: 1px 0; }
+        #btn-tutorial { background-color: #0056a0; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 0.9em; margin-top: 10px; }
+        #btn-tutorial:hover { background-color: #003366; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); z-index: 100; display: flex; align-items: center; justify-content: center; }
+        .modal-content { background-color: white; padding: 20px 30px; border-radius: 8px; width: 70%; max-width: 800px; max-height: 80vh; overflow-y: auto; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .modal-close { position: absolute; top: 10px; right: 20px; font-size: 2.5em; font-weight: bold; color: #aaa; cursor: pointer; }
+        .modal-close:hover { color: #333; }
+        .hidden { display: none; }
+        .modal-content h3 { color: #003366; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+        .modal-content p { line-height: 1.6; }
+        .modal-content code { background-color: #eef4ff; padding: 2px 5px; border-radius: 3px; }
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.7); z-index: 9998; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px); transition: opacity 0.2s; }
+        .loading-overlay.hidden { display: none; opacity: 0; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #0056a0; border-radius: 50%; animation: spin 1s linear infinite; }
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; }
+            .plot-container { grid-template-columns: 1fr; }
+            .output-group { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="container">
+        <div class="controles">
+            <h1>Simulador de Enlace RF</h1>
+            <p>Baseado nas Leis de Maxwell (Antenas) e Equação de Friis (Propagação)</p>
+            <button id="btn-tutorial">Como Usar (Tutorial)</button>
+            <h2 style="margin-top: 20px;">Fase 1: Transmissão</h2>
+            <div class="form-group">
+                <label for="mensagem">Mensagem (Máx: 223 bytes)</label>
+                <input type="text" id="mensagem" value="MAXWELL - Este e um teste de comunicacao de radio!" placeholder="Digite sua mensagem...">
+            </div>
+            <div class="form-group">
+                <label for="modulacao">Modulação Digital</label>
+                <select id="modulacao">
+                    <option value="bpsk" selected>BPSK (Robusto)</option>
+                    <option value="qpsk">QPSK (Equilibrado)</option>
+                    <option value="qam16">16-QAM (Alta Velocidade)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="use-fec"> Usar Correção de Erros (Reed-Solomon)
+                </label>
+            </div>
+
+            <h2>Fase 2: Antenas e Enlace</h2>
+            <h3>Antena Transmissora (Tx)</h3>
+            <div class="form-group-dual">
+                <div>
+                    <label for="potencia-tx">Potência de Transmissão (Pt):</label>
+                    <span id="potencia-tx-valor" class="slider-output">20 dBm (100 mW)</span>
+                </div>
+                <input type="number" id="potencia-tx-input" class="slider-input" value="20" step="1" min="0" max="30">
+            </div>
+            <input type="range" id="potencia-tx" min="0" max="30" value="20" step="1">
+            <div class="form-group">
+                <label for="antenna-type-tx">Tipo de Antena (Tx)</label>
+                <select id="antenna-type-tx">
+                    <option value="dipolo" selected>Dipolo de Meia-Onda (Linear)</option>
+                    <option value="yagi">Antena Yagi (Linear, Direcional)</option>
+                    <option value="patch">Antena Patch (Linear, Direcional)</option>
+                    <option value="circular">Dipolo Cruzado (4-Polos, Circular)</option>
+                    <option value="custom">Personalizada (Ganho Manual)</option>
+                </select>
+            </div>
+            
+            <div id="group-ganho-manual-tx" class="form-group" style="display: none; background-color: #f8f9fa; border: 1px solid #e0e0e0; padding: 10px; border-radius: 5px;">
+                <div class="form-group-dual">
+                    <div>
+                        <label for="ganho-manual-tx">Ganho Manual Tx (Gt):</label>
+                        <span id="ganho-manual-tx-valor" class="slider-output">10.0 dBi</span>
+                    </div>
+                    <input type="number" id="ganho-manual-tx-input" class="slider-input" value="10.0" step="0.5" min="-10" max="30">
+                </div>
+                <input type="range" id="ganho-manual-tx" min="-10" max="30" value="10" step="0.5">
+                <div class="form-group" style="margin-top: 10px;">
+                    <label for="custom-pol-tx">Polarização (Personalizada)</label>
+                    <select id="custom-pol-tx">
+                        <option value="linear" selected>Linear (Ex: Yagi)</option>
+                        <option value="circular">Circular (Ex: Helical)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="group-comprimento-tx" class="form-group">
+                <label for="comprimento-tx">Comprimento Físico (L) - Tx:</label>
+                <span id="comprimento-tx-valor" class="slider-output">0.16 m</span>
+                <input type="range" id="comprimento-tx" min="0.01" max="1.0" value="0.16" step="0.01">
+            </div>
+            <div id="group-misalignment-tx" class="form-group">
+                <label for="misalignment-angle-tx" id="misalignment-angle-label-tx">Ângulo de Desalinhamento (Apontar) - Tx:</label>
+                <span id="misalignment-angle-tx-valor" class="slider-output">0° (Perfeito)</span>
+                <input type="range" id="misalignment-angle-tx" min="0" max="180" value="0" step="1">
+            </div>
+            <div id="group-polarization-tx" class="form-group">
+                <label for="polarization-angle-tx" id="polarization-angle-label-tx">Ângulo de Polarização (Girar) - Tx:</label>
+                <span id="polarization-angle-tx-valor" class="slider-output">0° (Alinhado)</span>
+                <input type="range" id="polarization-angle-tx" min="0" max="90" value="0" step="1">
+            </div>
+            
+            <h3 style="margin-top: 20px;">Parâmetros do Enlace</h3>
+            <div class="form-group-dual">
+                 <div>
+                    <label for="frequencia">Frequência (fc):</label>
+                    <span id="frequencia-valor" class="slider-output">900 MHz</span>
+                </div>
+                <input type="number" id="frequencia-input" class="slider-input" value="900" step="10" min="300" max="1500"> </div>
+            <input type="range" id="frequencia" min="300" max="1500" value="900" step="10">
+            
+            <h3 style="margin-top: 20px;">Antena Receptora (Rx)</h3>
+            <p style="font-size: 0.9em; margin-top: -10px; color: #555;">(Define o Ganho de Recepção e Polarização)</p>
+            <div class="form-group">
+                <label for="antenna-type-rx">Tipo de Antena (Rx)</label>
+                <select id="antenna-type-rx">
+                    <option value="dipolo" selected>Dipolo de Meia-Onda (Linear)</option>
+                    <option value="yagi">Antena Yagi (Linear, Direcional)</option>
+                    <option value="patch">Antena Patch (Linear, Direcional)</option>
+                    <option value="circular">Dipolo Cruzado (4-Polos, Circular)</option>
+                    <option value="custom">Personalizada (Ganho Manual)</option>
+                </select>
+            </div>
+            
+            <div id="group-ganho-manual-rx" class="form-group" style="display: none; background-color: #f8f9fa; border: 1px solid #e0e0e0; padding: 10px; border-radius: 5px;">
+                <div class="form-group-dual">
+                    <div>
+                        <label for="ganho-manual-rx">Ganho Manual Rx (Gr):</label>
+                        <span id="ganho-manual-rx-valor" class="slider-output">10.0 dBi</span>
+                    </div>
+                    <input type="number" id="ganho-manual-rx-input" class="slider-input" value="10.0" step="0.5" min="-10" max="30">
+                </div>
+                <input type="range" id="ganho-manual-rx" min="-10" max="30" value="10" step="0.5">
+                <div class="form-group" style="margin-top: 10px;">
+                    <label for="custom-pol-rx">Polarização (Personalizada)</label>
+                    <select id="custom-pol-rx">
+                        <option value="linear" selected>Linear (Ex: Yagi)</option>
+                        <option value="circular">Circular (Ex: Helical)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="group-comprimento-rx" class="form-group">
+                <label for="comprimento-rx">Comprimento Físico (L) - Rx:</label>
+                <span id="comprimento-rx-valor" class="slider-output">0.16 m</span>
+                <input type="range" id="comprimento-rx" min="0.01" max="1.0" value="0.16" step="0.01">
+            </div>
+            <div id="group-misalignment-rx" class="form-group">
+                <label for="misalignment-angle-rx" id="misalignment-angle-label-rx">Ângulo de Desalinhamento (Apontar) - Rx:</label>
+                <span id="misalignment-angle-rx-valor" class="slider-output">0° (Perfeito)</span>
+                <input type="range" id="misalignment-angle-rx" min="0" max="180" value="0" step="1">
+            </div>
+            <div id="group-polarization-rx" class="form-group">
+                <label for="polarization-angle-rx" id="polarization-angle-label-rx">Ângulo de Polarização (Girar) - Rx:</label>
+                <span id="polarization-angle-rx-valor" class="slider-output">0° (Alinhado)</span>
+                <input type="range" id="polarization-angle-rx" min="0" max="90" value="0" step="1">
+            </div>
+
+            <h2>Fase 3: Propagação</h2>
+            
+            <div class="form-group">
+                <label for="propagation-model">Modelo de Propagação (Grande Escala)</label>
+                <select id="propagation-model">
+                    <option value="friis">Espaço Livre (Friis)</option>
+                    <option value="tworay" selected>Reflexão do Solo (Dois Raios)</option>
+                    <option value="hata_urban">Urbano (Okumura-Hata)</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="fading-model">Modelo de Fading (Pequena Escala)</label>
+                <select id="fading-model">
+                    <option value="none" selected>Nenhum (Sinal Estável)</option>
+                    <option value="rayleigh">Rayleigh (Móvel, NLOS)</option>
+                    <option value="rician">Rician (Móvel, LOS)</option>
+                </select>
+            </div>
+            
+            <div id="group-rician-k" class="form-group" style="display: none; background-color: #f8f9fa; border: 1px solid #e0e0e0; padding: 10px; border-radius: 5px;">
+                <div class="form-group-dual">
+                    <div>
+                        <label for="rician-k">Fator Rician (K):</label>
+                        <span id="rician-k-valor" class="slider-output">10.0 dB (LOS Forte)</span>
+                    </div>
+                    <input type="number" id="rician-k-input" class="slider-input" value="10.0" step="0.5" min="0" max="20">
+                </div>
+                <input type="range" id="rician-k" min="0" max="20" value="10" step="0.5">
+            </div>
+            <div class="form-group-dual" style="margin-top: 15px;">
+                <div>
+                    <label for="distancia">Distância (d):</label>
+                    <span id="distancia-valor" class="slider-output">1 km</span>
+                </div>
+                <input type="number" id="distancia-input" class="slider-input" value="1.00" step="0.1" min="0.01" max="20"> </div>
+            <input type="range" id="distancia" min="0.01" max="20" value="1" step="0.1">
+
+            <div id="group-ht" class="form-group-dual" style="margin-top: 10px;">
+                <div>
+                    <label for="ht">Altura Tx (ht):</label>
+                    <span id="ht-valor" class="slider-output">30 m</span>
+                </div>
+                <input type="number" id="ht-input" class="slider-input" value="30" step="1" min="1" max="200"> </div>
+            <input type="range" id="ht" min="1" max="200" value="30" step="1">
+            
+            <div id="group-hr" class="form-group-dual" style="margin-top: 10px;">
+                <div>
+                    <label for="hr">Altura Rx (hr):</label>
+                    <span id="hr-valor" class="slider-output">1.5 m</span>
+                </div>
+                <input type="number" id="hr-input" class="slider-input" value="1.5" step="0.1" min="1" max="10"> </div>
+            <input type="range" id="hr" min="1" max="10" value="1.5" step="0.1">
+
+            <div id="group-city-size" class="form-group" style="margin-top: 10px;">
+                <label for="city-size">Tamanho da Cidade (Hata)</label>
+                <select id="city-size">
+                    <option value="small_medium" selected>Pequena / Média</option>
+                    <option value="large">Grande</option>
+                </select>
+            </div>
+
+            <div class="form-group-dual" style="margin-top: 10px;">
+                <div>
+                    <label for="perdas-adicionais">Perdas Adicionais (Chuva, etc.):</label>
+                    <span id="perdas-adicionais-valor" class="slider-output">0 dB</span>
+                </div>
+                <input type="number" id="perdas-adicionais-input" class="slider-input" value="0" step="0.5" min="0" max="50">
+            </div>
+            <input type="range" id="perdas-adicionais" min="0" max="50" value="0" step="0.5">
+            
+            
+            <h2>Fase 4: Receptor</h2>
+            <p style="font-size: 0.9em; margin-top: -10px; color: #555;">(Baseado no Ruído Térmico kTB)</p>
+
+            <div class="form-group-dual">
+                <div>
+                    <label for="largura-banda">Largura de Banda (BW):</label>
+                    <span id="largura-banda-valor" class="slider-output">1.0 MHz</span>
+                </div>
+                <input type="number" id="largura-banda-input" class="slider-input" value="1.0" step="0.1" min="0.1" max="20">
+            </div>
+            <input type="range" id="largura-banda" min="0.1" max="20" value="1.0" step="0.1">
+
+            <div class="form-group-dual" style="margin-top: 10px;">
+                <div>
+                    <label for="noise-figure">Figura de Ruído (NF):</label>
+                    <span id="noise-figure-valor" class="slider-output">5.0 dB</span>
+                </div>
+                <input type="number" id="noise-figure-input" class="slider-input" value="5.0" step="0.5" min="0.5" max="15">
+            </div>
+            <input type="range" id="noise-figure" min="0.5" max="15" value="5.0" step="0.5">
+            
+            <div class="form-group-dual" style="margin-top: 10px;">
+                <div>
+                    <label for="snr-minimo">SNR Mínimo Requerido (Sensibilidade):</label>
+                    <span id="snr-minimo-valor" class="slider-output">12 dB</span>
+                </div>
+                <input type="number" id="snr-minimo-input" class="slider-input" value="12" step="1" min="0" max="30">
+            </div>
+            <input type="range" id="snr-minimo" min="0" max="30" value="12" step="1">
+        </div>
+
+        <div class="visualizacao">
+            
+            <div>
+                <h2>Resultado Principal do Enlace</h2>
+                <div class="output-group">
+                    <div class="output-box" style="grid-column: 1 / -1;">
+                        Margem de Enlace (Link Margin)
+                        <strong id="out-margin">-- dB</strong>
+                    </div>
+                    <div class="output-box">
+                        Sensibilidade do Receptor
+                        <strong id="out-sensitivity">-- dBm</strong>
+                    </div>
+                    <div class="output-box">
+                        Piso de Ruído (kTB + NF)
+                        <strong id="out-noise-floor">-- dBm</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h2>Balanço de Enlace (Link Budget)</h2>
+                <table class="link-budget-table">
+                    <tbody>
+                        <tr>
+                            <td>(Pt) Potência de Transmissão</td>
+                            <td id="budget-pt" class="budget-gain">+0.00 dBm</td>
+                        </tr>
+                        <tr>
+                            <td>(Gt) Ganho da Antena Tx</td>
+                            <td id="budget-gt" class="budget-gain">+0.00 dBi</td>
+                        </tr>
+                        <tr>
+                            <td id="budget-lprop-label">(Lprop) Perda de Propagação</td> <td id="budget-lprop" class="budget-loss">-0.00 dB</td>
+                        </tr>
+                        <tr>
+                            <td>(Latm) Perdas Adicionais</td>
+                            <td id="budget-latm" class="budget-loss">-0.00 dB</td>
+                        </tr>
+                        <tr>
+                            <td>(Lpol) Perda de Polarização</td>
+                            <td id="budget-lpol" class="budget-loss">-0.00 dB</td>
+                        </tr>
+                        <tr>
+                            <td>(Gr) Ganho da Antena Rx</td>
+                            <td id="budget-gr" class="budget-gain">+0.00 dBi</td>
+                        </tr>
+                        <tr>
+                            <td class="budget-total">(Pr) Potência Recebida (Média)</td>
+                            <td id="budget-pr" class="budget-total">-0.00 dBm</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div>
+                <h2>Resultados da Antena (Fase 2)</h2>
+                <div class="output-box" style="margin-bottom: 15px;">
+                    Compr. de Onda (λ)
+                    <strong id="out-lambda">-- m</strong>
+                </div>
+                <h3 style="font-size: 1.1em; color: #333; margin-bottom: 5px;">Antena Tx</h3>
+                <div class="output-group">
+                    <div class="output-box">
+                        Ganho (Gt)
+                        <strong id="out-ganho-tx">-- dBi</strong>
+                    </div>
+                    <div class="output-box">
+                        Relação (L / λ) - Tx
+                        <strong id="out-relacao-tx">-- λ</strong>
+                    </div>
+                    <div class="output-box" style="grid-column: 1 / -1;">
+                        Impedância (Zin) - Tx
+                        <strong id="out-impedancia-tx" style="font-size: 1.2em">-- Ω</strong>
+                    </div>
+                </div>
+                <div id="status-antena-tx" style="margin-top: 10px; margin-bottom: 15px;">Status Tx</div>
+                <h3 style="font-size: 1.1em; color: #333; margin-bottom: 5px;">Antena Rx</h3>
+                <div class="output-group">
+                    <div class="output-box">
+                        Ganho (Gr)
+                        <strong id="out-ganho-rx">-- dBi</strong>
+                    </div>
+                    <div class="output-box">
+                        Relação (L / λ) - Rx
+                        <strong id="out-relacao-rx">-- λ</strong>
+                    </div>
+                     <div class="output-box" style="grid-column: 1 / -1;">
+                        Impedância (Zin) - Rx
+                        <strong id="out-impedancia-rx" style="font-size: 1.2em">-- Ω</strong>
+                    </div>
+                </div>
+                <div id="status-antena-rx" style="margin-top: 10px;">Status Rx</div>
+            </div>
+            
+            <div>
+                <h2>Resultados da Recepção (Fase 4)</h2>
+                <p style="font-size: 0.9em; margin-top: -10px; color: #555;">(Valores instantâneos, incluindo fading)</p>
+                <div class="output-group">
+                    <div class="output-box" style="grid-column: 1 / -1;">
+                        Potência Recebida (Pr)
+                        <strong id="out-pr" style="font-size: 1.5em;">-- dBm</strong>
+                    </div>
+                    <div class="output-box">
+                        SNR (Razão Sinal-Ruído)
+                        <strong id="out-snr">-- dB</strong>
+                    </div>
+                    <div class="output-box">
+                        BER (Taxa de Erro de Bit)
+                        <strong id="out-ber">-- %</strong>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <div class="message-output">
+                    <label>Mensagem Original:</label>
+                    <pre id="out-msg-original" style="margin: 0;"></pre>
+                </div>
+                <div class="message-output" style="margin-top: 10px;">
+                    <label>Mensagem Recebida (Pós-Decodificação):</label>
+                    <pre id="out-msg-recebida" style="margin: 0;"></pre>
+                </div>
+            </div>
+            
+            <div class="plot-container-full">
+                <div id="plot-distancia"></div>
+            </div>
+            <div class="plot-container">
+                <div id="plot-radiation-tx"></div> 
+                <div id="plot-radiation-rx"></div> 
+                <div id="plot-signal-rx"></div>
+                <div id="plot-constellation"></div> 
+            </div>
+            <div class="plot-container-full">
+                <div id="plot-bits-demodulated"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div class="modal-content">
+            <span id="btn-close-modal" class="modal-close">&times;</span>
+            <h2>Guia Rápido do Simulador de Enlace RF</h2>
+            <p>Este simulador demonstra como a física (Leis de Maxwell) impacta uma comunicação de rádio digital.</p>
+            <h3>O Que Cada Fase Significa?</h3>
+            <ul>
+                <li><strong>Fase 1: Transmissão:</strong> Define a <strong>informação</strong> (Modulação e Correção de Erros - FEC).</li>
+                <li><strong>Fase 2: Antena (Onde Maxwell Atua):</strong> Define a <strong>eficiência</strong> (Ressonância), <strong>direção</strong> (Ganho, Yagi) e <strong>orientação</strong> (Polarização) do seu sinal.</li>
+                <li><strong>Fase 3: Propagação:</strong> Define como o ambiente enfraquece o sinal.
+                    <ul>
+                        <li><code>Modelo de Propagação</code>: Perda de grande escala (distância, prédios).</li>
+                        <li><code>Modelo de Fading</code>: Flutuação de pequena escala (multipath). <code>Rayleigh</code> (sem visada) flutua muito, <code>Rician</code> (com visada) flutua menos.</li>
+                    </ul>
+                </li>
+                <li><strong>Fase 4: Receptor:</strong> O <code>SNR Mínimo</code> é o que seu rádio precisa. A <code>Largura de Banda (BW)</code> e a <code>Figura de Ruído (NF)</code> agora determinam seu <code>Piso de Ruído</code> real (baseado na fórmula de ruído térmico de Boltzmann, kTB).</li>
+            </ul>
+            <h3>Resultados (A Consequência)</h3>
+            <ul>
+                <li><code>Balanço de Enlace</code>: Mostra o cálculo da potência <strong>média</strong> (sem fading).</li>
+                <li><code>Gráfico Potência vs. Distância</code>: Mostra a potência <strong>média</strong> ao longo do trajeto.</li>
+                <li><code>Resultados da Recepção (Fase 4)</code>: Mostra a potência <strong>instantânea</strong> (com fading aplicado), que é usada para o cálculo real do <code>SNR</code> e <code>BER</code>.</li>
+            </ul>
+            <h3>Experimentos Sugeridos (Testes)</h3>
+            <ol>
+                <li><strong>Teste 1: A "Morte" Urbana (Hata vs. Dois Raios)</strong>
+                    <ul>
+                        <li>Configure um enlace de 5 km com o modelo <strong>"Reflexão do Solo"</strong>. Ajuste as alturas (ht=30, hr=1.5) para ter um bom sinal.</li>
+                        <li>Agora, mude o <strong>Modelo de Propagação</strong> para <strong>"Urbano (Okumura-Hata)"</strong>.</li>
+                        <li>Observe o <code>(Lprop)</code>: ele irá *aumentar* em 30 dB ou mais. O enlace falhará.</li>
+                    </ul>
+                </li>
+                <li><strong>Teste 2: A "Mágica" da Altura (Dois Raios)</strong>
+                    <ul>
+                        <li>Use o modelo <strong>"Reflexão do Solo"</strong> para um enlace de 10 km.</li>
+                        <li>Observe o gráfico <strong>Potência vs. Distância</strong>. Você verá o sinal mergulhar em "nulos".</li>
+                        <li>Comece a aumentar lentamente a <strong>Altura Tx (ht)</strong>. Veja os "lobos" de interferência se "esticando" para mais longe.</li>
+                    </ul>
+                </li>
+                <li><strong>Teste 3: O Custo da Velocidade (BW vs. Ruído)</strong>
+                    <ul>
+                        <li>Configure um bom enlace (ex: 5km, Friis, 10 dBi de ganho em cada antena).</li>
+                        <li>Na Fase 4, defina a <strong>Largura de Banda (BW)</strong> para <strong>1 MHz</strong>. Anote o <code>Piso de Ruído</code>.</li>
+                        <li>Agora, dobre a Largura de Banda para <strong>2 MHz</strong>.</li>
+                        <li>O <code>Piso de Ruído</code> subirá 3 dB e sua <code>Margem</code> cairá 3 dB.</li>
+                    </ul>
+                </li>
+                <li><strong>Teste 4: A Loteria do Fading (Rayleigh)</strong>
+                    <ul>
+                        <li>Configure um enlace com uma <code>Margem de Enlace</code> "boa", de cerca de <strong>10 dB</strong>. (Use "Nenhum" fading por enquanto). A mensagem deve chegar perfeitamente.</li>
+                        <li>Agora, mude o <strong>Modelo de Fading</strong> para <strong>"Rayleigh (Móvel, NLOS)"</strong>.</li>
+                        <li>Clique na caixa "Mensagem" e aperte <strong>Enter</strong> (ou adicione um espaço e apague). Faça isso várias vezes para forçar uma nova simulação.</li>
+                        <li>Observe o <code>SNR</code> e a <code>Margem</code> saltarem descontroladamente. Eventualmente, você terá um "deep fade", a Margem ficará negativa, o BER disparará e a mensagem falhará (<code>!!! FALHA NA CORREÇÃO !!!</code>), mesmo que a potência *média* ainda seja boa!</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        
+        // Função Debounce
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // --- MUDANÇA: Referências aos Elementos do HTML ---
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const inputMensagem = document.getElementById('mensagem'); 
+        const sliderFreq = document.getElementById('frequencia');
+        const sliderDist = document.getElementById('distancia');
+        
+        const sliderLarguraBanda = document.getElementById('largura-banda');
+        const inputLarguraBanda = document.getElementById('largura-banda-input');
+        const valLarguraBanda = document.getElementById('largura-banda-valor');
+        const sliderNoiseFigure = document.getElementById('noise-figure');
+        const inputNoiseFigure = document.getElementById('noise-figure-input');
+        const valNoiseFigure = document.getElementById('noise-figure-valor');
+        
+        const checkFEC = document.getElementById('use-fec');
+        const sliderPotenciaTx = document.getElementById('potencia-tx');
+        const selectModulacao = document.getElementById('modulacao'); 
+        const sliderSnrMinimo = document.getElementById('snr-minimo'); 
+        const sliderPerdasAdicionais = document.getElementById('perdas-adicionais');
+
+        const selectAntennaTx = document.getElementById('antenna-type-tx');
+        const selectAntennaRx = document.getElementById('antenna-type-rx');
+        
+        const groupGanhoManualTx = document.getElementById('group-ganho-manual-tx');
+        const sliderGanhoManualTx = document.getElementById('ganho-manual-tx');
+        const inputGanhoManualTx = document.getElementById('ganho-manual-tx-input');
+        const valGanhoManualTx = document.getElementById('ganho-manual-tx-valor');
+        const selectCustomPolTx = document.getElementById('custom-pol-tx'); 
+
+        const groupGanhoManualRx = document.getElementById('group-ganho-manual-rx');
+        const sliderGanhoManualRx = document.getElementById('ganho-manual-rx');
+        const inputGanhoManualRx = document.getElementById('ganho-manual-rx-input');
+        const valGanhoManualRx = document.getElementById('ganho-manual-rx-valor');
+        const selectCustomPolRx = document.getElementById('custom-pol-rx');
+
+        const groupCompTx = document.getElementById('group-comprimento-tx');
+        const sliderCompTx = document.getElementById('comprimento-tx');
+        const groupMisalignmentTx = document.getElementById('group-misalignment-tx');
+        const sliderMisalignmentTx = document.getElementById('misalignment-angle-tx');
+        const groupPolarizationTx = document.getElementById('group-polarization-tx');
+        const sliderPolarizationTx = document.getElementById('polarization-angle-tx');
+        
+        const groupCompRx = document.getElementById('group-comprimento-rx');
+        const sliderCompRx = document.getElementById('comprimento-rx');
+        const groupMisalignmentRx = document.getElementById('group-misalignment-rx');
+        const sliderMisalignmentRx = document.getElementById('misalignment-angle-rx');
+        const groupPolarizationRx = document.getElementById('group-polarization-rx');
+        const sliderPolarizationRx = document.getElementById('polarization-angle-rx');
+
+        const selectPropagationModel = document.getElementById('propagation-model');
+        const selectCitySize = document.getElementById('city-size');
+        const groupHt = document.getElementById('group-ht');
+        const groupHr = document.getElementById('group-hr');
+        const groupCitySize = document.getElementById('group-city-size');
+        const sliderHt = document.getElementById('ht');
+        const sliderHr = document.getElementById('hr');
+        
+        // --- NOVO: Controles de Fading ---
+        const selectFadingModel = document.getElementById('fading-model');
+        const groupRicianK = document.getElementById('group-rician-k');
+        const sliderRicianK = document.getElementById('rician-k');
+        const inputRicianK = document.getElementById('rician-k-input');
+        const valRicianK = document.getElementById('rician-k-valor');
+
+        const inputPotenciaTx = document.getElementById('potencia-tx-input');
+        const inputFreq = document.getElementById('frequencia-input');
+        const inputDist = document.getElementById('distancia-input');
+        const inputSnrMinimo = document.getElementById('snr-minimo-input');
+        const inputPerdasAdicionais = document.getElementById('perdas-adicionais-input');
+        const inputHt = document.getElementById('ht-input');
+        const inputHr = document.getElementById('hr-input');
+
+        const valFreq = document.getElementById('frequencia-valor');
+        const valDist = document.getElementById('distancia-valor');
+        const valPotenciaTx = document.getElementById('potencia-tx-valor');
+        const valSnrMinimo = document.getElementById('snr-minimo-valor'); 
+        const valPerdasAdicionais = document.getElementById('perdas-adicionais-valor');
+        const valHt = document.getElementById('ht-valor');
+        const valHr = document.getElementById('hr-valor');
+        
+        const valCompTx = document.getElementById('comprimento-tx-valor');
+        const valMisalignmentTx = document.getElementById('misalignment-angle-tx-valor');
+        const valPolarizationTx = document.getElementById('polarization-angle-tx-valor');
+        const labelMisalignmentTx = document.getElementById('misalignment-angle-label-tx'); 
+        const labelPolarizationTx = document.getElementById('polarization-angle-label-tx'); 
+        const valCompRx = document.getElementById('comprimento-rx-valor');
+        const valMisalignmentRx = document.getElementById('misalignment-angle-rx-valor');
+        const valPolarizationRx = document.getElementById('polarization-angle-rx-valor');
+        const labelMisalignmentRx = document.getElementById('misalignment-angle-label-rx'); 
+        const labelPolarizationRx = document.getElementById('polarization-angle-label-rx'); 
+
+        const outLambda = document.getElementById('out-lambda');
+        const outRelacaoTx = document.getElementById('out-relacao-tx');
+        const outGanhoTx = document.getElementById('out-ganho-tx');
+        const outImpedanciaTx = document.getElementById('out-impedancia-tx');
+        const outStatusTx = document.getElementById('status-antena-tx');
+        const outRelacaoRx = document.getElementById('out-relacao-rx');
+        const outGanhoRx = document.getElementById('out-ganho-rx');
+        const outImpedanciaRx = document.getElementById('out-impedancia-rx');
+        const outStatusRx = document.getElementById('status-antena-rx');
+        const outPr = document.getElementById('out-pr');
+        const outSnr = document.getElementById('out-snr'); 
+        const outBer = document.getElementById('out-ber'); 
+        const outMsgOriginal = document.getElementById('out-msg-original'); 
+        const outMsgRecebida = document.getElementById('out-msg-recebida'); 
+        
+        const budgetPt = document.getElementById('budget-pt');
+        const budgetGt = document.getElementById('budget-gt');
+        const budgetLpropLabel = document.getElementById('budget-lprop-label'); 
+        const budgetLprop = document.getElementById('budget-lprop'); 
+        const budgetLatm = document.getElementById('budget-latm');
+        const budgetLpol = document.getElementById('budget-lpol');
+        const budgetGr = document.getElementById('budget-gr');
+        const budgetPr = document.getElementById('budget-pr');
+        
+        const outMargin = document.getElementById('out-margin');
+        const outSensitivity = document.getElementById('out-sensitivity');
+        const outNoiseFloor = document.getElementById('out-noise-floor');
+
+        const btnTutorial = document.getElementById('btn-tutorial');
+        const modalOverlay = document.getElementById('modal-overlay');
+        const btnCloseModal = document.getElementById('btn-close-modal');
+
+        // --- MUDANÇA: Função Principal de Simulação ---
+        async function rodarSimulacao() {
+            
+            loadingOverlay.classList.remove('hidden');
+
+            const freq_mhz = parseFloat(sliderFreq.value);
+            const dist_km = parseFloat(sliderDist.value);
+            const message_str = inputMensagem.value; 
+            const use_fec = checkFEC.checked;
+            const modulacao = selectModulacao.value;
+            const perdas_adicionais_db = parseFloat(sliderPerdasAdicionais.value);
+            const potencia_tx_dbm = parseFloat(sliderPotenciaTx.value);
+            const snr_min_db = parseFloat(sliderSnrMinimo.value);
+
+            try {
+                const response = await fetch('/calcular_simulacao', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        frequencia: freq_mhz,
+                        distancia: dist_km,
+                        message: message_str,
+                        
+                        largura_banda_mhz: parseFloat(sliderLarguraBanda.value),
+                        noise_figure_db: parseFloat(sliderNoiseFigure.value),
+                        
+                        use_fec: use_fec,
+                        modulacao: modulacao,
+                        perdas_adicionais_db: perdas_adicionais_db,
+                        potencia_tx_dbm: potencia_tx_dbm,
+                        snr_min_db: snr_min_db,
+                        
+                        comprimento_antena_tx: parseFloat(sliderCompTx.value),
+                        antenna_type_tx: selectAntennaTx.value,
+                        misalignment_angle_tx: parseFloat(sliderMisalignmentTx.value),
+                        polarization_angle_tx: parseFloat(sliderPolarizationTx.value),
+                        ganho_manual_tx_dbi: parseFloat(sliderGanhoManualTx.value),
+                        custom_pol_tx: selectCustomPolTx.value,
+
+                        comprimento_antena_rx: parseFloat(sliderCompRx.value),
+                        antenna_type_rx: selectAntennaRx.value,
+                        misalignment_angle_rx: parseFloat(sliderMisalignmentRx.value),
+                        polarization_angle_rx: parseFloat(sliderPolarizationRx.value),
+                        ganho_manual_rx_dbi: parseFloat(sliderGanhoManualRx.value),
+                        custom_pol_rx: selectCustomPolRx.value,
+
+                        ht: parseFloat(sliderHt.value),
+                        hr: parseFloat(sliderHr.value),
+                        propagation_model: selectPropagationModel.value,
+                        city_size: selectCitySize.value,
+                        
+                        // --- NOVO: Envia dados de Fading ---
+                        fading_model: selectFadingModel.value,
+                        rician_k_db: parseFloat(sliderRicianK.value)
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erro de rede: ${response.statusText}`);
+                }
+                const data = await response.json();
+                console.log("Dados recebidos do Python:", data);
+
+                atualizarOutputs(data);
+                desenharGraficos(data.plot_data, data.propagation_params, data.sim_params); 
+
+            } catch (error) {
+                console.error("Erro na simulação:", error);
+                outStatusTx.textContent = "Erro. Verifique o console (F12) para detalhes.";
+                outStatusTx.className = "status-ruim";
+                outStatusRx.textContent = "Erro. Verifique o console (F12) para detalhes.";
+                outStatusRx.className = "status-ruim";
+            } finally {
+                loadingOverlay.classList.add('hidden');
+            }
+        }
+
+        // --- MUDANÇA: Funções "RÁPIDAS" (Atualizam a UI) ---
+        
+        function atualizarLabels() {
+            // (Potência, Freq, Dist, Perdas, SNR)
+            const pot_dbm = sliderPotenciaTx.value;
+            const pot_mw = Math.pow(10, pot_dbm / 10).toFixed(1);
+            valPotenciaTx.textContent = `${pot_dbm} dBm (${pot_mw} mW)`;
+            inputPotenciaTx.value = pot_dbm;
+            valFreq.textContent = `${sliderFreq.value} MHz`;
+            inputFreq.value = sliderFreq.value;
+            const dist_val = parseFloat(sliderDist.value).toFixed(2);
+            valDist.textContent = `${dist_val} km`;
+            inputDist.value = dist_val; 
+            const perdas_val = parseFloat(sliderPerdasAdicionais.value).toFixed(1);
+            valPerdasAdicionais.textContent = `${perdas_val} dB`;
+            inputPerdasAdicionais.value = perdas_val;
+            valSnrMinimo.textContent = `${sliderSnrMinimo.value} dB`;
+            inputSnrMinimo.value = sliderSnrMinimo.value;
+            
+            // (Labels de Receptor)
+            const bw_val = parseFloat(sliderLarguraBanda.value).toFixed(1);
+            valLarguraBanda.textContent = `${bw_val} MHz`;
+            inputLarguraBanda.value = bw_val;
+            
+            const nf_val = parseFloat(sliderNoiseFigure.value).toFixed(1);
+            valNoiseFigure.textContent = `${nf_val} dB`;
+            inputNoiseFigure.value = nf_val;
+            
+            // --- NOVO: Label do Fator K Rician ---
+            const k_val = parseFloat(sliderRicianK.value).toFixed(1);
+            valRicianK.textContent = `${k_val} dB ${k_val > 8 ? '(LOS Forte)' : (k_val < 3 ? '(LOS Fraco)' : '(LOS Médio)')}`;
+            inputRicianK.value = k_val;
+
+            // (Labels de Altura)
+            const ht_val = parseFloat(sliderHt.value).toFixed(1);
+            valHt.textContent = `${ht_val} m`;
+            inputHt.value = ht_val;
+            const hr_val = parseFloat(sliderHr.value).toFixed(1);
+            valHr.textContent = `${hr_val} m`;
+            inputHr.value = hr_val;
+            
+            // (Labels de Antena Tx/Rx)
+            valCompTx.textContent = `${parseFloat(sliderCompTx.value).toFixed(2)} m`;
+            valMisalignmentTx.textContent = `${sliderMisalignmentTx.value}° ${sliderMisalignmentTx.value == 0 ? '(Perfeito)' : ''}`;
+            const pol_angle_tx = sliderPolarizationTx.value;
+            valPolarizationTx.textContent = `${pol_angle_tx}° ${pol_angle_tx == 0 ? '(Alinhado)' : (pol_angle_tx == 90 ? '(Cruzado!)' : '')}`;
+            
+            valCompRx.textContent = `${parseFloat(sliderCompRx.value).toFixed(2)} m`;
+            valMisalignmentRx.textContent = `${sliderMisalignmentRx.value}° ${sliderMisalignmentRx.value == 0 ? '(Perfeito)' : ''}`;
+            const pol_angle_rx = sliderPolarizationRx.value;
+            valPolarizationRx.textContent = `${pol_angle_rx}° ${pol_angle_rx == 0 ? '(Alinhado)' : (pol_angle_rx == 90 ? '(Cruzado!)' : '')}`;
+
+            // (Labels de Ganho Manual)
+            const ganho_manual_tx_val = parseFloat(sliderGanhoManualTx.value).toFixed(1);
+            valGanhoManualTx.textContent = `${ganho_manual_tx_val} dBi`;
+            inputGanhoManualTx.value = ganho_manual_tx_val;
+
+            const ganho_manual_rx_val = parseFloat(sliderGanhoManualRx.value).toFixed(1);
+            valGanhoManualRx.textContent = `${ganho_manual_rx_val} dBi`;
+            inputGanhoManualRx.value = ganho_manual_rx_val;
+        }
+        
+        // (toggleAntennaSliders - Sem Mudanças)
+        function toggleAntennaSliders(
+            selectElement, customPolSelect,
+            misalignSlider, polarizeSlider, misalignLabel, polarizeLabel,
+            groupMisalignment, groupPolarization
+        ) {
+            let isLinear = false;
+            const tipo = selectElement.value;
+            
+            if (tipo === 'dipolo' || tipo === 'yagi' || tipo === 'patch') {
+                isLinear = true;
+            } else if (tipo === 'custom') {
+                isLinear = (customPolSelect.value === 'linear');
+            }
+
+            misalignSlider.disabled = !isLinear;
+            polarizeSlider.disabled = !isLinear;
+            misalignLabel.classList.toggle('disabled', !isLinear);
+            polarizeLabel.classList.toggle('disabled', !isLinear);
+            
+            groupMisalignment.style.display = isLinear ? 'block' : 'none'; 
+            groupPolarization.style.display = isLinear ? 'block' : 'none';
+
+            if (!isLinear) {
+                misalignSlider.value = 0;
+                polarizeSlider.value = 0;
+            }
+        }
+        
+        // (toggleCustomGains - Sem Mudanças)
+        function toggleCustomGains(
+            selectElement, customPolSelect,
+            groupComp, groupGanhoManual,
+            misalignSlider, polarizeSlider, misalignLabel, polarizeLabel,
+            groupMisalignment, groupPolarization
+        ) {
+            if (selectElement.value === 'custom') {
+                groupComp.style.display = 'none';
+                groupGanhoManual.style.display = 'block';
+            } else {
+                groupComp.style.display = 'block';
+                groupGanhoManual.style.display = 'none';
+            }
+            
+            toggleAntennaSliders(
+                selectElement, customPolSelect, 
+                misalignSlider, polarizeSlider, 
+                misalignLabel, polarizeLabel,
+                groupMisalignment, groupPolarization
+            );
+        }
+
+        // (togglePropagationControls - Sem Mudanças)
+        function togglePropagationControls() {
+            const model = selectPropagationModel.value;
+            
+            if (model === 'friis') {
+                groupHt.style.display = 'none';
+                groupHr.style.display = 'none';
+                groupCitySize.style.display = 'none';
+                budgetLpropLabel.textContent = "(Lprop) Perda de Espaço Livre";
+            } else if (model === 'tworay') {
+                groupHt.style.display = 'flex'; 
+                groupHr.style.display = 'flex';
+                groupCitySize.style.display = 'none';
+                budgetLpropLabel.textContent = "(Lprop) Perda de Dois Raios";
+            } else if (model === 'hata_urban') {
+                groupHt.style.display = 'flex';
+                groupHr.style.display = 'flex';
+                groupCitySize.style.display = 'block'; 
+                budgetLpropLabel.textContent = "(Lprop) Perda (Hata)";
+            }
+        }
+        
+        // --- NOVO: toggleFadingControls ---
+        function toggleFadingControls() {
+            const model = selectFadingModel.value;
+            if (model === 'rician') {
+                groupRicianK.style.display = 'block';
+            } else {
+                groupRicianK.style.display = 'none';
+            }
+        }
+
+        // --- MUDANÇA: Funções Auxiliares (BLINDADAS) ---
+        function atualizarOutputs(data) {
+            try {
+                let prop = data.propagation_params; 
+                let sim = data.sim_params;
+                let params_tx = data.antenna_params_tx;
+                let params_rx = data.antenna_params_rx;
+
+                // (Cálculo de Margem)
+                const snr_min_db = sim.snr_min_db;
+                const total_noise_floor_dbm = sim.total_noise_floor_dbm;
+                const pr_dbm = prop.potencia_recebida_dbm; // Este agora é o valor INSTANTÂNEO (com fading)
+                const sensibilidade_dbm = total_noise_floor_dbm + snr_min_db;
+                const margem_db = pr_dbm - sensibilidade_dbm;
+                
+                outMargin.textContent = `${margem_db.toFixed(2)} dB`;
+                outSensitivity.textContent = `${sensibilidade_dbm.toFixed(2)} dBm`;
+                outNoiseFloor.textContent = `${total_noise_floor_dbm.toFixed(2)} dBm`;
+                outMargin.style.color = (margem_db > 0) ? "#1e663c" : "#a31c1c";
+                
+                // (ATUALIZAR TABELA DE BALANÇO DE ENLACE)
+                const pt_dbm = sim.potencia_tx_dbm;
+                const gt_dbi = params_tx.ganho_dbi;
+                const lprop_db = prop.lprop_db;
+                const latm_db = prop.latm_db;
+                const lpol_db = prop.lpol_db || 0.0;
+                const gr_dbi = params_rx.ganho_dbi;
+                const pr_media_dbm = prop.potencia_recebida_media_dbm; // <-- MUDANÇA: Usar a média aqui
+
+                budgetPt.textContent = `+${pt_dbm.toFixed(2)} dBm`;
+                budgetGt.textContent = `+${gt_dbi.toFixed(2)} dBi`;
+                budgetLprop.textContent = `-${lprop_db.toFixed(2)} dB`;
+                budgetLatm.textContent = `-${latm_db.toFixed(2)} dB`;
+                budgetLpol.textContent = `-${lpol_db.toFixed(2)} dB`;
+                budgetGr.textContent = `+${gr_dbi.toFixed(2)} dBi`;
+                budgetPr.textContent = `${pr_media_dbm.toFixed(2)} dBm`; // <-- MUDANÇA: Mostra a média
+                
+                // (Resultados Antena Tx/Rx)
+                outLambda.textContent = `${data.wavelength_m.toFixed(3)} m`;
+                
+                outRelacaoTx.textContent = `${params_tx.relacao_onda}`;
+                outGanhoTx.textContent = `${params_tx.ganho_dbi.toFixed(2)} dBi`; 
+                outImpedanciaTx.textContent = `${params_tx.impedancia}`;
+                if (params_tx.is_resonant) {
+                    outStatusTx.textContent = (sim.antenna_type_tx === 'custom') ? `Antena Manual (${sim.custom_pol_tx})` : "Antena Tx Ressonante (Casamento Ótimo)";
+                    outStatusTx.className = "status-bom";
+                } else {
+                    outStatusTx.textContent = "Antena Tx Não Ressonante (Descasada)";
+                    outStatusTx.className = "status-ruim";
+                }
+                
+                outRelacaoRx.textContent = `${params_rx.relacao_onda}`;
+                outGanhoRx.textContent = `${params_rx.ganho_dbi.toFixed(2)} dBi`; 
+                outImpedanciaRx.textContent = `${params_rx.impedancia}`;
+                if (params_rx.is_resonant) {
+                    outStatusRx.textContent = (sim.antenna_type_rx === 'custom') ? `Antena Manual (${sim.custom_pol_rx})` : "Antena Rx Ressonante (Casamento Ótimo)";
+                    outStatusRx.className = "status-bom";
+                } else {
+                    outStatusRx.textContent = "Antena Rx Não Ressonante (Descasada)";
+                    outStatusRx.className = "status-ruim";
+                }
+
+                // (Resultados Recepção)
+                outPr.textContent = prop.potencia_recebida_dbm.toFixed(2) + " dBm"; // <-- Valor instantâneo
+                outSnr.textContent = prop.snr_db.toFixed(2) + " dB"; // <-- Valor instantâneo
+                let ber_percent = prop.ber * 100;
+                if (ber_percent === 0.0) { outBer.textContent = "0 % (Perfeito)"; }
+                else if (ber_percent < 0.0001) { outBer.textContent = `${ber_percent.toExponential(2)} %`; }
+                else { outBer.textContent = `${ber_percent.toFixed(4)} %`; }
+                
+                // (Mensagens)
+                outMsgOriginal.textContent = data.original_message;
+                if (data.received_message.includes("!!! FALHA NA CORREÇÃO")) {
+                    outMsgRecebida.innerHTML = `<span class="erro-fec">${data.received_message}</span>`;
+                } else {
+                    outMsgRecebida.innerHTML = compararMensagens(
+                        data.original_message, 
+                        data.received_message
+                    );
+                }
+            } catch (e) {
+                console.error("Erro ao atualizar os outputs:", e);
+                outStatusTx.textContent = "Erro ao exibir dados. Verifique o console.";
+                outStatusTx.className = "status-ruim";
+                outStatusRx.textContent = "Erro ao exibir dados. Verifique o console.";
+                outStatusRx.className = "status-ruim";
+            }
+        }
+        
+        // (compararMensagens - Sem Mudanças)
+        function compararMensagens(original, recebida) {
+            let html = "";
+            let rec = recebida.replace(/\uFFFD/g, ''); 
+            let maxLen = Math.max(original.length, rec.length);
+            for (let i = 0; i < maxLen; i++) {
+                let char_r = rec[i] || ''; 
+                let char_o = original[i] || ''; 
+                if (char_r !== char_o) {
+                    html += `<span class="erro-bit">${char_r || ' '}</span>`;
+                } else {
+                    html += `<span>${char_r}</span>`;
+                }
+            }
+            return html;
+        }
+
+        // --- MUDANÇA: Função de Desenhar Gráficos ---
+        function desenharGraficos(plotData, propParams, simParams) {
+            try {
+                // (Gráficos 1-5 - Sem Mudanças)
+                const radiationDataTx = plotData.radiation_pattern;
+                const plotDiv1 = document.getElementById('plot-radiation-tx');
+                const trace1 = { r: radiationDataTx.r_db, theta: radiationDataTx.theta, mode: 'lines', type: 'scatterpolar', line: { color: '#0056a0', width: 3 }, r_unit: 'dB' };
+                const max_gain_for_plot_tx = radiationDataTx.r_db.length > 0 ? Math.max(-30, ...radiationDataTx.r_db) : 5;
+                const layout1 = { title: 'Diagrama de Radiação (Plano E) - TX', polar: { radialaxis: { range: [-30, Math.max(5, max_gain_for_plot_tx + 1)], nticks: 5 }, angularaxis: { direction: 'clockwise' } }, margin: { l: 40, r: 40, t: 80, b: 40 } };
+                Plotly.newPlot(plotDiv1, [trace1], layout1);
+
+                const radiationDataRx = plotData.radiation_pattern_rx;
+                const plotDiv2 = document.getElementById('plot-radiation-rx');
+                const trace2 = { r: radiationDataRx.r_db, theta: radiationDataRx.theta, mode: 'lines', type: 'scatterpolar', line: { color: '#e08214', width: 3 }, r_unit: 'dB' };
+                const max_gain_for_plot_rx = radiationDataRx.r_db.length > 0 ? Math.max(-30, ...radiationDataRx.r_db) : 5;
+                const layout2 = { title: 'Diagrama de Radiação (Plano E) - RX', polar: { radialaxis: { range: [-30, Math.max(5, max_gain_for_plot_rx + 1)], nticks: 5 }, angularaxis: { direction: 'clockwise' } }, margin: { l: 40, r: 40, t: 80, b: 40 } };
+                Plotly.newPlot(plotDiv2, [trace2], layout2);
+
+                function getSignalPlotConfig(signal_values, fixed_amplitude_rms) {
+                    const maxAbsVal = signal_values.reduce((max, v) => Math.max(max, Math.abs(v)), 0);
+                    let noise_floor_peak = (fixed_amplitude_rms || 0) * 5;
+                    let plot_max_v = Math.max(maxAbsVal, noise_floor_peak);
+                    if (plot_max_v === 0) plot_max_v = 1e-9;
+                    let y_range = [-plot_max_v * 1.2, plot_max_v * 1.2];
+                    let y_title = "Tensão (V)"; let y_format = '.2f'; let mapped_values = signal_values;
+                    if (y_range[1] < 0.000001) { y_title = "Tensão (nV)"; y_format = '.0f'; mapped_values = signal_values.map(v => v * 1e9); y_range = y_range.map(v => v * 1e9); }
+                    else if (y_range[1] < 0.001) { y_title = "Tensão (uV)"; y_format = '.1f'; mapped_values = signal_values.map(v => v * 1e6); y_range = y_range.map(v => v * 1e6); }
+                    if (fixed_amplitude_rms === 0) {
+                         if (maxAbsVal === 0) y_range = [-1.2, 1.2]; 
+                         else y_range = [-maxAbsVal * 1.2, maxAbsVal * 1.2];
+                         if (y_range[1] < 1.0) y_range = [-1.2, 1.2];
+                    }
+                    return { y_range, y_title, y_format, mapped_values };
+                }
+                
+                const signalRxData = plotData.signal_rx_modulado_com_ruido;
+                const plotDiv3 = document.getElementById('plot-signal-rx');
+                const amplitude_noise_v = propParams.amplitude_noise_v || 0;
+                const configRx = getSignalPlotConfig(signalRxData.signal_v, amplitude_noise_v);
+                const trace3 = { x: signalRxData.t_s, y: configRx.mapped_values, mode: 'lines', type: 'scatter', line: { color: '#007f5f', width: 2 }, showlegend: false };
+                const layout3 = { title: 'Sinal Modulado RX (Com Ruído)', xaxis: { title: 'Tempo (s)', tickformat: '.2e' }, yaxis: { title: configRx.y_title, range: configRx.y_range, tickformat: configRx.y_format } };
+                Plotly.newPlot(plotDiv3, [trace3], layout3);
+
+                const constellationData = plotData.constellation;
+                const plotDiv4 = document.getElementById('plot-constellation');
+                const trace4 = { x: constellationData.i, y: constellationData.q, mode: 'markers', type: 'scatter', marker: { size: 5, color: '#6a0dad', opacity: 0.6 } , showlegend: false };
+                const max_i = Math.max(...constellationData.i.map(Math.abs));
+                const max_q = Math.max(...constellationData.q.map(Math.abs));
+                const max_val = Math.max(max_i, max_q, 1.5);
+                const range = [-max_val * 1.2, max_val * 1.2];
+                const layout4 = { title: 'Diagrama de Constelação (I/Q)', xaxis: { title: 'Fase (I)', range: range, zeroline: true }, yaxis: { title: 'Quadratura (Q)', range: range, zeroline: true }, margin: { l: 50, r: 40, t: 80, b: 50 }, width: 350, height: 300, autosize: false };
+                Plotly.newPlot(plotDiv4, [trace4], layout4);
+                
+                const bitsDemodData = plotData.bits_desmodulados_plot;
+                const plotDiv5 = document.getElementById('plot-bits-demodulated');
+                const trace5 = { x: bitsDemodData.t_s_bits, y: bitsDemodData.bits, mode: 'markers', type: 'scatter', marker: { size: 10, color: '#333' } , hovertemplate: 'Bit: %{y}<extra></extra>', showlegend: false };
+                const decisionLine = { x: bitsDemodData.t_s_bits, y: Array(bitsDemodData.t_s_bits.length).fill(0.5), mode: 'lines', type: 'scatter', line: { color: 'red', dash: 'dot', width: 1 }, name: 'Limiar', showlegend: false };
+                const layout5 = { title: 'Bits Desmodulados (Com Erros)', xaxis: { title: 'Índice de Bit' }, yaxis: { title: 'Valor do Bit', range: [-0.2, 1.2], tickvals: [0, 1], ticktext: ['0', '1'] }, margin: { l: 40, r: 40, t: 80, b: 40 } };
+                Plotly.newPlot(plotDiv5, [trace5, decisionLine], layout5);
+                
+                // (Gráfico 6 - Potência vs. Distância)
+                const distanciaPlotData = plotData.distancia_plot;
+                const plotDiv6 = document.getElementById('plot-distancia');
+                // ESTE GRÁFICO MOSTRA A POTÊNCIA MÉDIA, o que está correto.
+                const trace6 = { x: distanciaPlotData.distancias_km, y: distanciaPlotData.potencias_dbm, mode: 'lines', type: 'scatter', line: { color: '#d62728', width: 2.5 }, name: 'Potência Recebida (Média)' }; 
+                
+                const sensibilidade_dbm = simParams.total_noise_floor_dbm + simParams.snr_min_db;
+                
+                const traceSensibilidade = {
+                    x: [distanciaPlotData.distancias_km[0], distanciaPlotData.distancias_km[distanciaPlotData.distancias_km.length - 1]],
+                    y: [sensibilidade_dbm, sensibilidade_dbm],
+                    mode: 'lines', type: 'scatter', line: { color: '#222', dash: 'dot', width: 2 }, name: 'Sensibilidade (Piso + SNR min)'
+                };
+                const layout6 = { title: 'Potência Recebida (Média) vs. Distância', xaxis: { title: 'Distância (km)' }, yaxis: { title: 'Potência (dBm)' }, margin: { l: 50, r: 40, t: 80, b: 50 }, showlegend: true, legend: { x: 0.01, y: 0.01, bgcolor: 'rgba(255,255,255,0.7)' } };
+                Plotly.newPlot(plotDiv6, [trace6, traceSensibilidade], layout6);
+
+            } catch(e) {
+                console.error("Erro ao desenhar gráficos:", e);
+                outStatusTx.textContent = "Erro ao exibir dados. Verifique o console.";
+                outStatusTx.className = "status-ruim";
+                outStatusRx.textContent = "Erro ao exibir dados. Verifique o console.";
+                outStatusRx.className = "status-ruim";
+            }
+        }
+
+        // --- MUDANÇA: Event Listeners ---
+        const rodarSimulacaoDebounced = debounce(rodarSimulacao, 250);
+
+        const allSharedSliders = [
+            sliderFreq, sliderDist, 
+            sliderLarguraBanda, sliderNoiseFigure,
+            sliderPotenciaTx, sliderSnrMinimo, sliderPerdasAdicionais,
+            sliderHt, sliderHr,
+            sliderRicianK // <-- NOVO
+        ];
+        const allTxSliders = [sliderCompTx, sliderMisalignmentTx, sliderPolarizationTx, sliderGanhoManualTx];
+        const allRxSliders = [sliderCompRx, sliderMisalignmentRx, sliderPolarizationRx, sliderGanhoManualRx];
+
+        [...allSharedSliders, ...allTxSliders, ...allRxSliders].forEach(slider => {
+            slider.addEventListener('input', atualizarLabels); 
+            slider.addEventListener('input', rodarSimulacaoDebounced);
+        });
+
+        // (setupInputListener)
+        function setupInputListener(input, slider, isFloat = false, decimals = 1) {
+            input.addEventListener('change', () => {
+                let val = parseFloat(input.value);
+                const min = parseFloat(slider.min);
+                const max = parseFloat(slider.max);
+                if (val < min) val = min;
+                if (val > max) val = max;
+                input.value = isFloat ? val.toFixed(decimals) : val;
+                slider.value = input.value;
+                atualizarLabels();
+                rodarSimulacao();
+            });
+        }
+        
+        setupInputListener(inputPotenciaTx, sliderPotenciaTx);
+        setupInputListener(inputFreq, sliderFreq);
+        setupInputListener(inputDist, sliderDist, true, 2);
+        setupInputListener(inputLarguraBanda, sliderLarguraBanda, true, 1);
+        setupInputListener(inputNoiseFigure, sliderNoiseFigure, true, 1);
+        setupInputListener(inputSnrMinimo, sliderSnrMinimo);
+        setupInputListener(inputPerdasAdicionais, sliderPerdasAdicionais, true);
+        setupInputListener(inputHt, sliderHt, true);
+        setupInputListener(inputHr, sliderHr, true);
+        setupInputListener(inputGanhoManualTx, sliderGanhoManualTx, true);
+        setupInputListener(inputGanhoManualRx, sliderGanhoManualRx, true);
+        setupInputListener(inputRicianK, sliderRicianK, true); // <-- NOVO
+
+
+        // (Listeners de Dropdown/Checkbox)
+        const allSelects = [
+            selectModulacao, selectAntennaTx, selectAntennaRx, 
+            selectPropagationModel, selectCitySize,
+            selectCustomPolTx, selectCustomPolRx,
+            selectFadingModel // <-- NOVO
+        ];
+        allSelects.forEach(input => {
+            input.addEventListener('change', rodarSimulacao);
+        });
+        inputMensagem.addEventListener('change', rodarSimulacao);
+        checkFEC.addEventListener('change', rodarSimulacao);
+        
+        
+        // (Listeners para Controles de Propagação)
+        selectPropagationModel.addEventListener('change', togglePropagationControls);
+        selectFadingModel.addEventListener('change', toggleFadingControls); // <-- NOVO
+        
+        
+        // (Listeners de Toggle de Antena)
+        selectAntennaTx.addEventListener('change', () => {
+            toggleCustomGains(
+                selectAntennaTx, selectCustomPolTx, groupCompTx, groupGanhoManualTx,
+                sliderMisalignmentTx, sliderPolarizationTx, labelMisalignmentTx, labelPolarizationTx,
+                groupMisalignmentTx, groupPolarizationTx
+            );
+            atualizarLabels();
+        });
+        selectAntennaRx.addEventListener('change', () => {
+            toggleCustomGains(
+                selectAntennaRx, selectCustomPolRx, groupCompRx, groupGanhoManualRx,
+                sliderMisalignmentRx, sliderPolarizationRx, labelMisalignmentRx, labelPolarizationRx,
+                groupMisalignmentRx, groupPolarizationRx
+            );
+            atualizarLabels();
+        });
+        
+        // (Listeners para mudança de polarização customizada)
+        selectCustomPolTx.addEventListener('change', () => {
+             toggleAntennaSliders(
+                selectAntennaTx, selectCustomPolTx,
+                sliderMisalignmentTx, sliderPolarizationTx, labelMisalignmentTx, labelPolarizationTx,
+                groupMisalignmentTx, groupPolarizationTx
+            );
+            atualizarLabels();
+        });
+         selectCustomPolRx.addEventListener('change', () => {
+             toggleAntennaSliders(
+                selectAntennaRx, selectCustomPolRx,
+                sliderMisalignmentRx, sliderPolarizationRx, labelMisalignmentRx, labelPolarizationRx,
+                groupMisalignmentRx, groupPolarizationRx
+            );
+            atualizarLabels();
+        });
+
+
+        // (Listeners do Modal)
+        btnTutorial.addEventListener('click', () => modalOverlay.classList.remove('hidden'));
+        btnCloseModal.addEventListener('click', () => modalOverlay.classList.add('hidden'));
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) modalOverlay.classList.add('hidden');
+        });
+
+        // --- MUDANÇA: Listener de Load ---
+        window.addEventListener('load', () => {
+            toggleCustomGains(
+                selectAntennaTx, selectCustomPolTx, groupCompTx, groupGanhoManualTx,
+                sliderMisalignmentTx, sliderPolarizationTx, labelMisalignmentTx, labelPolarizationTx,
+                groupMisalignmentTx, groupPolarizationTx
+            );
+            toggleCustomGains(
+                selectAntennaRx, selectCustomPolRx, groupCompRx, groupGanhoManualRx,
+                sliderMisalignmentRx, sliderPolarizationRx, labelMisalignmentRx, labelPolarizationRx,
+                groupMisalignmentRx, groupPolarizationRx
+            );
+            togglePropagationControls();
+            toggleFadingControls(); // <-- NOVO
+            atualizarLabels();
+            rodarSimulacao();  
+        });
+
+    </script>
+</body>
+</html>
